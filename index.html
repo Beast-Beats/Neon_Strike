@@ -14,6 +14,14 @@
         #boss-bar-fill { width: 100%; height: 100%; background: #f00; }
         .menu-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(5, 5, 20, 0.95); padding: 35px; border: 3px solid #0ff; text-align: center; z-index: 30; width: 280px; }
         button { background: #000; color: #0ff; border: 2px solid #0ff; padding: 15px; font-family: 'Press Start 2P', cursive; cursor: pointer; width: 100%; }
+        #pauseBtn{
+    pointer-events:auto;
+    border:2px solid #0ff;
+    padding:6px 10px;
+    border-radius:6px;
+    box-shadow:0 0 10px #0ff;
+    cursor:pointer;
+}
     </style>
 <link rel="manifest" href="manifest.json">
 
@@ -34,6 +42,7 @@ if ("serviceWorker" in navigator) {
         <div>BOMBS: <span id="bombVal">1</span></div>
         <div>HP: <span id="livesVal">3</span></div>
         <div id="pwr-label" style="color: #ff0; display: none;">WARP!</div>
+        <div id="pauseBtn">⏸</div>
     </div>
 
     <div id="boss-ui">
@@ -92,6 +101,11 @@ let score, lives, bombs, gameActive = false, isTouching = false;
 let player, bullets, bossBullets, enemies, healthPacks, powerUps, stars, particles, boss = null;
 let lastSpawn, lastHealthSpawn, lastPowerSpawn, lastShot, lastTap = 0;
 let powerTimer = 0, slowTimer = 0, shieldActive = false, bombFlash = 0, shakeTime = 0, warpTime = 0;
+let paused = false;
+let pauseTime = 0;
+function vibrate(ms=30){
+    if(navigator.vibrate) navigator.vibrate(ms);
+}
 
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.addEventListener('resize', resize);
@@ -120,6 +134,7 @@ function createExplosion(x, y, color, count = 12) {
 }
 
 function triggerBomb() {
+vibrate([50,30,50]);
     if (bombs <= 0 || !gameActive) return;
     bombs--; bombFlash = 12; shakeTime = 30;
     playSound(40, 'sawtooth', 0.8, 0.2);
@@ -137,6 +152,7 @@ function destroyBoss() {
     createExplosion(boss.x+boss.w/2, boss.y+boss.h/2, '#f33', 60);
     boss = null; document.getElementById('boss-ui').style.display = 'none';
     playSound(40, 'sawtooth', 1.2);
+    vibrate(60);
 }
 
 function startGame() {
@@ -166,6 +182,18 @@ canvas.addEventListener('touchend', () => isTouching = false);
 function movePlayer(e) { if(gameActive) player.x = e.touches[0].clientX; }
 
 function update() {
+if(paused){
+    ctx.fillStyle="rgba(0,0,0,0.45)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="#0ff";
+    ctx.textAlign="center";
+    ctx.font="16px 'Press Start 2P'";
+    ctx.fillText("PAUSED", canvas.width/2, canvas.height/2);
+
+    requestAnimationFrame(update);
+    return;
+}
     if (!gameActive) return;
     const now = Date.now();
     const ts = (slowTimer > now) ? 0.4 : 1.0;
@@ -176,7 +204,7 @@ function update() {
     if (shakeTime > 0) shakeTime--;
     if (warpTime > 0) warpTime--;
 
-    if (isTouching && now - lastShot > 350) {
+    if (!paused && isTouching && now - lastShot > 350) {
         if (powerTimer > now) bullets.push({x: player.x, y: player.y, vx: -3.5}, {x: player.x, y: player.y, vx: 0}, {x: player.x, y: player.y, vx: 3.5});
         else bullets.push({x: player.x, y: player.y, vx: 0});
         playSound(400, 'triangle', 0.1); lastShot = now;
@@ -279,6 +307,7 @@ function update() {
     if (bombFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${bombFlash/12})`; ctx.fillRect(0,0,canvas.width,canvas.height); bombFlash--; }
 
     function handleDamage() {
+    vibrate(60);
         shakeTime = 15;
         if (shieldActive) { shieldActive = false; playSound(300, 'sine', 0.4); }
         else { lives--; playSound(100, 'square', 0.6); if (lives <= 0) endGame(); }
@@ -293,6 +322,18 @@ function update() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     requestAnimationFrame(update);
 }
+
+const pauseBtn = document.getElementById("pauseBtn");
+
+pauseBtn.onclick = () => {
+    if(!gameActive) return;
+
+    paused = !paused;
+    vibrate(30);
+
+    pauseBtn.textContent = paused ? "▶" : "⏸";
+
+};
 </script>
 </body>
 </html>
