@@ -1,11 +1,13 @@
-const CACHE_NAME = "neon-strike-v3-stable"; // Incrementing version to clear old bad cache
+const CACHE_NAME = "neon-strike-v4"; // Incrementing version to clear old bad cache
 
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./lucide.min.js",
+  "./ms.m4a",
 ];
 
 // ================= INSTALL =================
